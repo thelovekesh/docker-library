@@ -2,15 +2,15 @@ root = true
 
 [*]
 charset = utf-8
+indent_size = 4
 end_of_line = lf
+indent_style = tab
 insert_final_newline = true
 trim_trailing_whitespace = true
-indent_style = tab
-indent_size = 4
 
-[{.rtlcssrc,*.json,*.yml,*.feature,*.sh}]
-indent_style = space
+[{*.json,*.yml,*.sh}]
 indent_size = 2
+indent_style = space
 
 [*.md]
 trim_trailing_whitespace = false
