@@ -2,7 +2,13 @@ ARG PHP_VERSION=8.3
 
 FROM php:${PHP_VERSION}-fpm-trixie
 
-RUN set -ex \
+RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
+	--mount=type=cache,target=/var/cache/apt,sharing=locked \
+	set -ex \
+	\
+	&& rm -f /etc/apt/apt.conf.d/docker-clean \
+	&& echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache \
+	\
 	&& mkdir -p /usr/share/man/man1 /usr/share/man/man7 \
 	&& apt-get update -y \
 	&& apt-get install -y --no-install-recommends \
@@ -17,10 +23,10 @@ RUN set -ex \
 	libbz2-dev libfreetype6-dev libgmp-dev libicu-dev libjpeg62-turbo-dev \
 	\
 	# compile and enable PECL extensions
-	&& pecl install igbinary \
+	&& MAKEFLAGS="-j$(nproc)" pecl install igbinary \
 	&& docker-php-ext-enable igbinary \
-	&& pecl install --configureoptions='enable-redis-igbinary="yes" enable-redis-zstd="yes"' redis \
-	&& pecl install apcu memcached xdebug imagick \
+	&& MAKEFLAGS="-j$(nproc)" pecl install --configureoptions='enable-redis-igbinary="yes" enable-redis-zstd="yes"' redis \
+	&& MAKEFLAGS="-j$(nproc)" pecl install apcu memcached xdebug imagick \
 	&& docker-php-ext-enable apcu redis memcached imagick \
 	\
 	# compile and enable bundled extensions
@@ -43,7 +49,7 @@ RUN set -ex \
 	| xargs -rt apt-mark manual \
 	\
 	&& apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/lib/cache/* /var/lib/log/*
+	&& rm -rf /tmp/* /var/tmp/* /var/lib/log/*
 
 RUN set -ex \
 	# install composer
@@ -61,8 +67,6 @@ RUN set -ex \
 	&& mkdir -p /var/www/.composer \
 	&& chown -R www-data:www-data /var/www
 
-COPY ./xdebug.sh /usr/local/bin/xdebug
-COPY ./wp-logs.sh /usr/local/bin/wp-logs
-COPY ./setup-wordpress.sh /usr/local/bin/setup-wordpress
-
-RUN chmod +x /usr/local/bin/xdebug /usr/local/bin/wp-logs /usr/local/bin/setup-wordpress
+COPY --chmod=755 ./xdebug.sh /usr/local/bin/xdebug
+COPY --chmod=755 ./wp-logs.sh /usr/local/bin/wp-logs
+COPY --chmod=755 ./setup-wordpress.sh /usr/local/bin/setup-wordpress
