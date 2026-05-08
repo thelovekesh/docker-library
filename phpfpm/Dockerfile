@@ -25,7 +25,10 @@ RUN set -ex \
 	\
 	# compile and enable bundled extensions
 	&& docker-php-ext-configure gd --enable-gd --with-jpeg --with-webp --with-freetype \
-	&& docker-php-ext-install -j$(nproc) bcmath bz2 calendar exif gettext intl mbstring mysqli opcache pcntl pdo pdo_mysql soap zip gd gmp sockets shmop sysvsem sysvshm \
+	&& bundledExts="bcmath bz2 calendar exif gettext intl mbstring mysqli pcntl pdo pdo_mysql soap zip gd gmp sockets shmop sysvsem sysvshm" \
+	# opcache ships built-in starting with PHP 8.5 (docker-library/php#1605); only build it on older versions
+	&& if [ "$(php -r 'echo PHP_VERSION_ID;')" -lt 80500 ]; then bundledExts="$bundledExts opcache"; fi \
+	&& docker-php-ext-install -j$(nproc) $bundledExts \
 	\
 	# clean up
 	&& extDir="$(php -r 'echo ini_get("extension_dir");')" \
